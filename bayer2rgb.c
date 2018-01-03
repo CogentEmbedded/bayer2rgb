@@ -114,7 +114,7 @@ getMethod(char* m)
 	if( strcmp(m, "AHD") == 0 )
 		return DC1394_BAYER_METHOD_AHD;
 
-	printf("WARNING: Unrecognized method \"%s\", defaulting to BILINEAR\n", m);
+	fprintf(stderr, "WARNING: Unrecognized method \"%s\", defaulting to BILINEAR\n", m);
 	return DC1394_BAYER_METHOD_BILINEAR;
 }
 
@@ -131,7 +131,7 @@ getFirstColor(char *f)
 	if( strcmp(f, "BGGR") == 0 )
 		return DC1394_COLOR_FILTER_BGGR;
 
-	printf("WARNING: Unrecognized first color \"%s\", defaulting to RGGB\n", f);
+	fprintf(stderr, "WARNING: Unrecognized first color \"%s\", defaulting to RGGB\n", f);
 	return DC1394_COLOR_FILTER_RGGB;
 }
 
@@ -176,17 +176,17 @@ read_and_store(int store_to_fd, int read_from_fd, size_t total_bytes)
 void
 usage( char * name )
 {
-	printf("usage: %s\n", name);
-	printf("   --input,-i     input file\n");
-	printf("   --output,-o    output file\n");
-	printf("   --width,-w     image width (pixels)\n");
-	printf("   --height,-v    image height (pixels)\n");
-	printf("   --bpp,-b       bits per pixel\n");
-	printf("   --first,-f     first pixel color: RGGB, GBRG, GRBG, BGGR\n");
-	printf("   --method,-m    interpolation method: NEAREST, SIMPLE, BILINEAR, HQLINEAR, DOWNSAMPLE, EDGESENSE, VNG, AHD\n");
-	printf("   --tiff,-t      add a tiff header\n");
-	printf("   --swap,-s      if bpp == 16, swap byte order before conversion\n");
-	printf("   --help,-h      this helpful message\n");
+	fprintf(stderr, "usage: %s\n", name);
+	fprintf(stderr, "   --input,-i     input file\n");
+	fprintf(stderr, "   --output,-o    output file\n");
+	fprintf(stderr, "   --width,-w     image width (pixels)\n");
+	fprintf(stderr, "   --height,-v    image height (pixels)\n");
+	fprintf(stderr, "   --bpp,-b       bits per pixel\n");
+	fprintf(stderr, "   --first,-f     first pixel color: RGGB, GBRG, GRBG, BGGR\n");
+	fprintf(stderr, "   --method,-m    interpolation method: NEAREST, SIMPLE, BILINEAR, HQLINEAR, DOWNSAMPLE, EDGESENSE, VNG, AHD\n");
+	fprintf(stderr, "   --tiff,-t      add a tiff header\n");
+	fprintf(stderr, "   --swap,-s      if bpp == 16, swap byte order before conversion\n");
+	fprintf(stderr, "   --help,-h      this helpful message\n");
 }
 
 int
@@ -255,7 +255,7 @@ main( int argc, char ** argv )
 				return 0;
 				break;
             default:
-                printf("bad arg\n");
+                fprintf(stderr, "bad arg\n");
 				usage(argv[0]);
                 return 1;
         }
@@ -263,7 +263,7 @@ main( int argc, char ** argv )
     // arguments: infile outfile width height bpp first_color
     if( infile == NULL || outfile == NULL || bpp == 0 || width == 0 || height == 0 )
     {
-        printf("Bad parameter\n");
+        fprintf(stderr, "Bad parameter\n");
 		usage(argv[0]);
         return 1;
     }
@@ -286,7 +286,7 @@ main( int argc, char ** argv )
 
     if(input_fd < 0)
     {
-        printf("Problem opening input: %s\n", infile);
+        fprintf(stderr, "Problem opening input: %s\n", infile);
         return 1;
     }
 
@@ -300,7 +300,7 @@ main( int argc, char ** argv )
     }
     if(output_fd < 0)
     {
-        printf("Problem opening output: %s\n", outfile);
+        fprintf(stderr, "Problem opening output: %s\n", outfile);
         return 1;
     }
 
@@ -324,9 +324,9 @@ main( int argc, char ** argv )
         return 1;
     }
 #ifdef DEBUG
-    printf("%p -> %p\n", bayer, rgb);
+    fprintf(stderr, "%p -> %p\n", bayer, rgb);
 
-    printf("%s: %s(%d) %s(%d) %d %d %d, %d %d\n", argv[0], infile, in_size, outfile, out_size, width, height, bpp, first_color, method );
+    fprintf(stderr, "%s: %s(%d) %s(%d) %d %d %d, %d %d\n", argv[0], infile, in_size, outfile, out_size, width, height, bpp, first_color, method );
 
     //memset(rgb, 0xff, out_size);//return 1;
 #endif
@@ -358,14 +358,14 @@ main( int argc, char ** argv )
 #endif
 
 #if DEBUG
-	printf("Last few In: %x %x %x %x\n",
+	fprintf(stderr, "Last few In: %x %x %x %x\n",
 			((uint32_t*)bayer)[0],
 			((uint32_t*)bayer)[1],
 			((uint32_t*)bayer)[2],
 			((uint32_t*)bayer)[3]);
 
 //			((int*)rgb)[2] = 0xadadadad;
-	printf("Last few Out: %x %x %x %x\n",
+	fprintf(stderr, "Last few Out: %x %x %x %x\n",
 			((uint32_t*)rgb)[0],
 			((uint32_t*)rgb)[1],
 			((uint32_t*)rgb)[2],
