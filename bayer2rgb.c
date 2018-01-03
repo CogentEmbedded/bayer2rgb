@@ -143,7 +143,6 @@ read_and_store(int store_to_fd, int read_from_fd, size_t total_bytes)
   size_t written;
   size_t written_this_time;
   uint8_t buf[4096];
-  errno = 0;
   while(read_so_far < total_bytes)
   {
     read_this_time = read(read_from_fd, buf, sizeof(buf));
