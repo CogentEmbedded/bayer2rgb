@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "bayer.h"
 
@@ -42,32 +43,32 @@
 // value of 100 -----------------+
 //
 #define TIFF_HDR_NUM_ENTRY 8
-#define TIFF_HDR_SIZE 10+TIFF_HDR_NUM_ENTRY*12 
+#define TIFF_HDR_SIZE 10+TIFF_HDR_NUM_ENTRY*12
 uint8_t tiff_header[TIFF_HDR_SIZE] = {
-	// I     I     42    
+	// I     I     42
 	  0x49, 0x49, 0x2a, 0x00,
-	// ( offset to tags, 0 )  
-	  0x08, 0x00, 0x00, 0x00, 
-	// ( num tags )  
-	  0x08, 0x00, 
+	// ( offset to tags, 0 )
+	  0x08, 0x00, 0x00, 0x00,
+	// ( num tags )
+	  0x08, 0x00,
 	// ( newsubfiletype, 0 full-image )
 	  0xfe, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	// ( image width )
 	  0x00, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	// ( image height )
-	  0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	  0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	// ( bits per sample )
-	  0x02, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	  0x02, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	// ( Photometric Interpretation, 2 = RGB )
-	  0x06, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 
+	  0x06, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
 	// ( Strip offsets, 8 )
-	  0x11, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 
+	  0x11, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
 	// ( samples per pixel, 3 - RGB)
 	  0x15, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
 	// ( Strip byte count )
-	  0x17, 0x01, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	  0x17, 0x01, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
-uint8_t * 
+uint8_t *
 put_tiff(uint8_t * rgb, uint32_t width, uint32_t height, uint16_t bpp)
 {
 	uint32_t ulTemp=0;
@@ -132,6 +133,44 @@ getFirstColor(char *f)
 
 	printf("WARNING: Unrecognized first color \"%s\", defaulting to RGGB\n", f);
 	return DC1394_COLOR_FILTER_RGGB;
+}
+
+void
+read_and_store(int store_to_fd, int read_from_fd, size_t total_bytes)
+{
+  size_t read_so_far=0;
+  size_t read_this_time;
+  size_t written;
+  size_t written_this_time;
+  uint8_t buf[4096];
+  errno = 0;
+  while(read_so_far < total_bytes)
+  {
+    read_this_time = read(read_from_fd, buf, sizeof(buf));
+    if(read_this_time > 0)
+    {
+      read_so_far += read_this_time;
+      written = 0;
+      while(written < read_this_time)
+      {
+        written_this_time = write(store_to_fd, &buf[written], read_this_time - written);
+        if(written_this_time > 0)
+        {
+          written += written_this_time;
+        }
+        else if(errno != EINTR)
+        {
+          perror("read_and_store (write)");
+          exit(EXIT_FAILURE);
+        }
+      }
+    }
+    else if(errno != EINTR)
+    {
+      perror("read_and_store (read)");
+      exit(EXIT_FAILURE);
+    }
+  }
 }
 
 void
@@ -229,14 +268,36 @@ main( int argc, char ** argv )
         return 1;
     }
 
-    input_fd = open(infile, O_RDONLY);
+    if(0 == strcmp(infile, "-"))
+    {
+      // Read from stdin to enable program pipelineing. Since we know width,
+      // height, and bpp, we also know how many bytes to read from stdin. Use a
+      // temp file as input for debayering.
+      input_fd = mkstemp("bayer2rgb-input.XXXXXX");
+      if(input_fd >= 0)
+      {
+        read_and_store(input_fd, STDIN_FILENO, width * height * (bpp / 8));
+      }
+    }
+    else
+    {
+      input_fd = open(infile, O_RDONLY);
+    }
+
     if(input_fd < 0)
     {
         printf("Problem opening input: %s\n", infile);
         return 1;
     }
 
-    output_fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+    if(0 == strcmp(outfile, "-"))
+    {
+      output_fd = mkstemp("bayer2rgb-output.XXXXXX");
+    }
+    else
+    {
+      output_fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+    }
     if(output_fd < 0)
     {
         printf("Problem opening output: %s\n", outfile);
@@ -297,14 +358,14 @@ main( int argc, char ** argv )
 #endif
 
 #if DEBUG
-	printf("Last few In: %x %x %x %x\n", 
+	printf("Last few In: %x %x %x %x\n",
 			((uint32_t*)bayer)[0],
 			((uint32_t*)bayer)[1],
 			((uint32_t*)bayer)[2],
 			((uint32_t*)bayer)[3]);
 
 //			((int*)rgb)[2] = 0xadadadad;
-	printf("Last few Out: %x %x %x %x\n", 
+	printf("Last few Out: %x %x %x %x\n",
 			((uint32_t*)rgb)[0],
 			((uint32_t*)rgb)[1],
 			((uint32_t*)rgb)[2],
@@ -319,6 +380,13 @@ main( int argc, char ** argv )
     munmap(rgb,out_size);
     if( fsync(output_fd) != 0 )
 		perror("Problem fsyncing");
+
+    if(0 == strcmp(outfile, "-"))
+    {
+      // send the output file to stdout
+      lseek(output_fd, 0, 0);
+      read_and_store(STDOUT_FILENO, output_fd, out_size);
+    }
     close(output_fd);
 
     return 0;
