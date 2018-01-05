@@ -138,19 +138,16 @@ getFirstColor(char *f)
 void
 read_and_store(int store_to_fd, int read_from_fd, size_t total_bytes)
 {
-  size_t read_so_far=0;
   size_t read_this_time;
   size_t written;
   size_t written_this_time;
-  size_t remain;
   uint8_t buf[4096];
-  while(read_so_far < total_bytes)
+  while(total_bytes > 0)
   {
-    remain = total_bytes - read_so_far;
-    read_this_time = remain < sizeof(buf) ? read(read_from_fd, buf, remain) : read(read_from_fd, buf, sizeof(buf));
+    read_this_time = (total_bytes < sizeof(buf) ? read(read_from_fd, buf, total_bytes) : read(read_from_fd, buf, sizeof(buf)));
     if(read_this_time > 0)
     {
-      read_so_far += read_this_time;
+      total_bytes -= read_this_time;
       written = 0;
       while(written < read_this_time)
       {
