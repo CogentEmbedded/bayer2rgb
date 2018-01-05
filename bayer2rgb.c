@@ -175,8 +175,8 @@ void
 usage( char * name )
 {
 	fprintf(stderr, "usage: %s\n", name);
-	fprintf(stderr, "   --input,-i     input file\n");
-	fprintf(stderr, "   --output,-o    output file\n");
+	fprintf(stderr, "   --input,-i     input file (use - for stdin)\n");
+	fprintf(stderr, "   --output,-o    output file (use - for stdout)\n");
 	fprintf(stderr, "   --width,-w     image width (pixels)\n");
 	fprintf(stderr, "   --height,-v    image height (pixels)\n");
 	fprintf(stderr, "   --bpp,-b       bits per pixel\n");
@@ -268,18 +268,19 @@ main( int argc, char ** argv )
 
     if(0 == strcmp(infile, "-"))
     {
-      // Read from stdin to enable program pipelineing. Since we know width,
-      // height, and bpp, we also know how many bytes to read from stdin. Use a
-      // temp file as input for debayering.
-      input_fd = mkstemp("bayer2rgb-input.XXXXXX");
-      if(input_fd >= 0)
-      {
-        read_and_store(input_fd, STDIN_FILENO, width * height * (bpp / 8));
-      }
+        // Read from stdin to enable program pipelineing. Since we know width,
+        // height, and bpp, we also know how many bytes to read from stdin. Use a
+        // temp file as input for debayering.
+        input_fd = mkstemp("bayer2rgb-input.XXXXXX");
+        if(input_fd >= 0)
+        {
+            read_and_store(input_fd, STDIN_FILENO, width * height * (bpp / 8));
+            lseek(input_fd, 0, 0); // so this behaves identically to infile being a real file
+        }
     }
     else
     {
-      input_fd = open(infile, O_RDONLY);
+        input_fd = open(infile, O_RDONLY);
     }
 
     if(input_fd < 0)
@@ -290,11 +291,11 @@ main( int argc, char ** argv )
 
     if(0 == strcmp(outfile, "-"))
     {
-      output_fd = mkstemp("bayer2rgb-output.XXXXXX");
+        output_fd = mkstemp("bayer2rgb-output.XXXXXX");
     }
     else
     {
-      output_fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
+        output_fd = open(outfile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH );
     }
     if(output_fd < 0)
     {
@@ -380,10 +381,9 @@ main( int argc, char ** argv )
 		perror("Problem fsyncing");
 
     if(0 == strcmp(outfile, "-"))
-    {
-      // send the output file to stdout
-      lseek(output_fd, 0, 0);
-      read_and_store(STDOUT_FILENO, output_fd, out_size);
+    { // send the output file to stdout
+        lseek(output_fd, 0, 0);
+        read_and_store(STDOUT_FILENO, output_fd, out_size);
     }
     close(output_fd);
 
