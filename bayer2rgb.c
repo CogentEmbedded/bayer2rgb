@@ -142,10 +142,12 @@ read_and_store(int store_to_fd, int read_from_fd, size_t total_bytes)
   size_t read_this_time;
   size_t written;
   size_t written_this_time;
+  size_t remain;
   uint8_t buf[4096];
   while(read_so_far < total_bytes)
   {
-    read_this_time = read(read_from_fd, buf, sizeof(buf));
+    remain = total_bytes - read_so_far;
+    read_this_time = remain < sizeof(buf) ? read(read_from_fd, buf, remain) : read(read_from_fd, buf, sizeof(buf));
     if(read_this_time > 0)
     {
       read_so_far += read_this_time;
