@@ -3,6 +3,7 @@
  * This file is part of bayer2rgb.
  *
  * Copyright (c) 2009 Jeff Thomas
+ * Copyright (c) 2018 Cogent Embedded Inc.
  *
  * bayer2rgb is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -180,7 +181,7 @@ usage( char * name )
 	fprintf(stderr, "   --width,-w     image width (pixels)\n");
 	fprintf(stderr, "   --height,-v    image height (pixels)\n");
 	fprintf(stderr, "   --bpp,-b       bits per pixel\n");
-	fprintf(stderr, "   --useful,-u    useful bits per pixel\n");
+	fprintf(stderr, "   --useful,-u    the number of useful bits per pixel\n");
 	fprintf(stderr, "   --first,-f     first pixel color: RGGB, GBRG, GRBG, BGGR\n");
 	fprintf(stderr, "   --method,-m    interpolation method: NEAREST, SIMPLE, BILINEAR, HQLINEAR, DOWNSAMPLE, EDGESENSE, VNG, AHD\n");
 	fprintf(stderr, "   --tiff,-t      add a tiff header\n");

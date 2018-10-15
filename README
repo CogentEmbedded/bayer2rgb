@@ -27,6 +27,7 @@ Running
        --width,-w     image width (pixels)
        --height,-v    image height (pixels)
        --bpp,-b       bits per pixel
+       --useful,-u    the number of useful bits per pixel
        --first,-f     first pixel color: RGGB, GBRG, GRBG, BGGR
        --method,-m    interpolation method: NEAREST, SIMPLE, BILINEAR, HQLINEAR, DOWNSAMPLE, EDGESENSE, VNG, AHD
        --tiff,-t      add a tiff header
