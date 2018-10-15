@@ -180,6 +180,7 @@ usage( char * name )
 	fprintf(stderr, "   --width,-w     image width (pixels)\n");
 	fprintf(stderr, "   --height,-v    image height (pixels)\n");
 	fprintf(stderr, "   --bpp,-b       bits per pixel\n");
+	fprintf(stderr, "   --useful,-u    useful bits per pixel\n");
 	fprintf(stderr, "   --first,-f     first pixel color: RGGB, GBRG, GRBG, BGGR\n");
 	fprintf(stderr, "   --method,-m    interpolation method: NEAREST, SIMPLE, BILINEAR, HQLINEAR, DOWNSAMPLE, EDGESENSE, VNG, AHD\n");
 	fprintf(stderr, "   --tiff,-t      add a tiff header\n");
@@ -190,7 +191,7 @@ usage( char * name )
 int
 main( int argc, char ** argv )
 {
-    uint32_t in_size=0, out_size=0, width=0, height=0, bpp=0;
+    uint32_t in_size=0, out_size=0, width=0, height=0, bpp=0, useful=0;
     int first_color = DC1394_COLOR_FILTER_RGGB;
 	int tiff = 0;
 	int method = DC1394_BAYER_METHOD_BILINEAR;
@@ -210,6 +211,7 @@ main( int argc, char ** argv )
         {"height",1,NULL,'v'},
         {"help",0,NULL,'h'},
         {"bpp",1,NULL,'b'},
+        {"useful",1,NULL,'u'},
         {"first",1,NULL,'f'},
         {"method",1,NULL,'m'},
         {"tiff",0,NULL,'t'},
@@ -217,7 +219,7 @@ main( int argc, char ** argv )
         {0,0,0,0}
     };
 
-    while ((c=getopt_long(argc,argv,"i:o:w:v:b:f:m:ths",longopt,&optidx)) != -1)
+    while ((c=getopt_long(argc,argv,"i:o:w:v:b:u:f:m:ths",longopt,&optidx)) != -1)
     {
         switch ( c )
         {
@@ -235,6 +237,9 @@ main( int argc, char ** argv )
                 break;
             case 'b':
                 bpp = strtol( optarg, NULL, 10 );
+                break;
+            case 'u':
+                useful = strtol( optarg, NULL, 10 );
                 break;
             case 'f':
                 first_color = getFirstColor( optarg );
@@ -258,6 +263,10 @@ main( int argc, char ** argv )
                 return 1;
         }
     }
+
+    if (!useful)
+        useful = bpp;
+
     // arguments: infile outfile width height bpp first_color
     if( infile == NULL || outfile == NULL || bpp == 0 || width == 0 || height == 0 )
     {
@@ -351,6 +360,15 @@ main( int argc, char ** argv )
                     *(((uint8_t*)bayer)+i+1) = tmp;
                 }
             }
+
+            if (useful < bpp) {
+                uint32_t i=0;
+                for(i=0;i< in_size / 2;i+=1) {  /*.. TODO: support bpp != 16 */
+                    uint16_t *ptr = ((uint16_t*)bayer) + i;
+                    *ptr = (*ptr) << (bpp - useful);
+                }
+            }
+
 			dc1394_bayer_decoding_16bit((const uint16_t*)bayer, (uint16_t*)rgb_start, width, height, first_color, method, bpp);
 			break;
 	}
